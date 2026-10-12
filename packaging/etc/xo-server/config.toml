@@ -2,8 +2,18 @@
 # /opt/xen-orchestra/xo/packages/xo-server/config.toml and are merged with this file.
 # This file is preserved across package upgrades.
 
+# Listen on loopback only, meant to sit behind a reverse proxy (nginx, caddy, ...)
+# that terminates TLS. To expose XO directly, use hostname = '0.0.0.0' (or remove
+# the line) and port = 80.
 [http.listen.0]
-port = 80
+hostname = '127.0.0.1'
+port = 9012
+
+# Which proxies may set X-Forwarded-For/-Proto (used for client IPs in the audit
+# log). The default, ['loopback'], already covers a proxy on this machine. For a
+# proxy on another host, list its address or CIDR instead, e.g. ['10.0.0.5'].
+#[http]
+#useForwardedHeaders = ['loopback']
 
 # Uncomment to serve XO 6 at the root instead of the default.
 #[http.mounts]

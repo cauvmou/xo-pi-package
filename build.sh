@@ -52,24 +52,7 @@ echo "Building xen-orchestra $release ($commit) as $version"
 npm install --global --prefix "$work/tools" yarn@1.22.22
 export PATH=$work/tools/bin:$PATH
 
-# fuse-native links against fuse-shared-library-linux, which ships a prebuilt x86_64
-# libfuse (and fuse-shared-library-linux-arm is 32-bit only). Skip install scripts,
-# point that package at the system FUSE 2 (libfuse-dev here, libfuse2t64 at runtime)
-# and build fuse-native by hand.
 yarn install --frozen-lockfile --ignore-scripts
-multiarch=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
-fuse_pkg=node_modules/fuse-shared-library-linux
-cat > $fuse_pkg/lib.js <<JS
-console.log('/usr/lib/$multiarch/libfuse.so')
-JS
-cat > $fuse_pkg/include.js <<JS
-console.log('/usr/include/fuse')
-JS
-sed -i \
-  -e "s|^const lib = .*|const lib = '/usr/lib/$multiarch/libfuse.so'|" \
-  -e "s|^const include = .*|const include = '/usr/include/fuse'|" \
-  $fuse_pkg/index.js
-(cd node_modules/fuse-native && ../.bin/node-gyp rebuild)
 # Same as upstream `yarn build` minus `build:doc` (docs are not shipped).
 TURBO_TELEMETRY_DISABLED=1 yarn turbo run build \
   --filter xo-server --filter 'xo-server-*' --filter xo-web \
@@ -78,6 +61,36 @@ TURBO_TELEMETRY_DISABLED=1 yarn turbo run build \
 # Drop dev dependencies; workspace symlinks stay relative so the tree is relocatable.
 yarn install --frozen-lockfile --production --ignore-scripts
 yarn cache clean
+
+# fuse-native links against fuse-shared-library-linux, which ships a prebuilt x86_64
+# libfuse (and fuse-shared-library-linux-arm is 32-bit only), plus helper scripts it
+# runs before mounting. Replace that package with a shim around the system FUSE 2
+# (libfuse-dev here, libfuse2t64 at runtime) and build fuse-native by hand. This must
+# come after the production install: yarn relinks node_modules and wipes build/ dirs.
+multiarch=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
+fuse_pkg=node_modules/fuse-shared-library-linux
+rm -rf "$fuse_pkg/libfuse" "$fuse_pkg/example"
+cat > $fuse_pkg/index.js <<JS
+const lib = '/usr/lib/$multiarch/libfuse.so'
+const include = '/usr/include/fuse'
+const done = cb => { if (cb) process.nextTick(cb, null) }
+module.exports = {
+  lib,
+  include,
+  configure: done,
+  unconfigure: done,
+  beforeMount: done,
+  beforeUnmount: done,
+  isConfigured: cb => process.nextTick(cb, null, true),
+}
+JS
+echo "console.log(require('./').lib)" > $fuse_pkg/lib.js
+echo "console.log(require('./').include)" > $fuse_pkg/include.js
+# node-gyp from the bundled npm: the project's own copy is a dev dependency, pruned above.
+(cd node_modules/fuse-native && node "$opt/node/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js" rebuild)
+rm -rf node_modules/fuse-native/prebuilds
+# Fail the build now rather than at service start.
+node -e "require('fuse-native')"
 
 # --- Stage ------------------------------------------------------------------
 rm -rf .git .turbo docs
