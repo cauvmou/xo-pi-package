@@ -1,0 +1,10 @@
+# Local overrides for xo-server. Defaults ship in
+# /opt/xen-orchestra/xo/packages/xo-server/config.toml and are merged with this file.
+# This file is preserved across package upgrades.
+
+[http.listen.0]
+port = 80
+
+# Uncomment to serve XO 6 at the root instead of the default.
+#[http.mounts]
+#'/' = '../../@xen-orchestra/web/dist/'

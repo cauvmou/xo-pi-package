@@ -1,0 +1,33 @@
+name: build-deb
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
+
+jobs:
+  deb:
+    runs-on: ubuntu-24.04-arm
+    container: debian:trixie
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git xz-utils build-essential python3 pkg-config \
+            libfuse3-dev libssl-dev dpkg-dev lintian
+      - uses: actions/checkout@v4
+      - run: make deb
+      - name: Lint
+        run: lintian out/*.deb || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xen-orchestra-deb
+          path: out/*.deb
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/*.deb

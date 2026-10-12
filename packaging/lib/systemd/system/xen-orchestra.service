@@ -1,0 +1,14 @@
+[Unit]
+Description=Xen Orchestra server
+After=network-online.target redis-server.service
+Wants=network-online.target redis-server.service
+
+[Service]
+Environment=DEBUG=xo:main
+WorkingDirectory=/opt/xen-orchestra/xo/packages/xo-server
+ExecStart=/opt/xen-orchestra/node/bin/node /opt/xen-orchestra/xo/packages/xo-server/dist/cli.mjs
+Restart=always
+SyslogIdentifier=xo-server
+
+[Install]
+WantedBy=multi-user.target

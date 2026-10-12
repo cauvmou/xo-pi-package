@@ -1,0 +1,14 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Xen Orchestra
+Source: https://github.com/vatesfr/xen-orchestra
+
+Files: opt/xen-orchestra/xo/*
+Copyright: Vates SAS and contributors
+License: AGPL-3+
+ Full text in /usr/share/doc/xen-orchestra/AGPL.txt. Individual packages may
+ carry other licenses (see their LICENSE files in the source tree).
+
+Files: opt/xen-orchestra/node/*
+Copyright: Node.js contributors
+License: MIT
+ See opt/xen-orchestra/node/LICENSE.

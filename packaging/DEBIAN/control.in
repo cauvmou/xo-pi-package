@@ -1,0 +1,14 @@
+Package: xen-orchestra
+Version: @VERSION@
+Architecture: arm64
+Maintainer: cauvmou <cauvmou.8855@gmail.com>
+Installed-Size: @SIZE@
+Section: admin
+Priority: optional
+Homepage: https://xen-orchestra.com
+Depends: redis-server | redis, libvhdi-utils, lvm2, cifs-utils, nfs-common, ntfs-3g, openssl, ca-certificates, systemd
+Recommends: fuse3, python3-minimal
+Description: Xen Orchestra (built from sources) web UI and server for XCP-ng/XenServer
+ Self-contained build of xo-server, xo-web and plugins from
+ https://github.com/vatesfr/xen-orchestra with a bundled Node.js runtime,
+ installed under /opt/xen-orchestra. Unofficial community package.
