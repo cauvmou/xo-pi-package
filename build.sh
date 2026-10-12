@@ -12,6 +12,15 @@ root=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=versions.env
 . "$root/versions.env"
 
+# Flags override versions.env / environment.
+while [ $# -gt 0 ]; do
+  case $1 in
+  --channel) XO_CHANNEL=${2:?}; XO_VERSION=; shift 2 ;;
+  --version) XO_VERSION=${2:?}; shift 2 ;;
+  *) echo "usage: $0 [--channel stable|latest] [--version X.Y.Z]" >&2; exit 2 ;;
+  esac
+done
+
 work=$root/work
 out=$root/out
 pkg=$work/pkgroot
@@ -34,13 +43,13 @@ rm -rf "$opt"/node/{include,share,CHANGELOG.md,README.md} \
 export PATH=$opt/node/bin:$PATH
 
 # --- XO sources -------------------------------------------------------------
-git clone --depth 1 --branch "$XO_REF" https://github.com/vatesfr/xen-orchestra "$work/xo"
+read -r release commit < <("$root/resolve-xo-ref.sh" "${XO_VERSION:-$XO_CHANNEL}")
+git init -q "$work/xo"
 cd "$work/xo"
-sha=$(git rev-parse --short=8 HEAD)
-date=$(git log -1 --format=%cd --date=format:%Y%m%d)
-xo_version=$(node -p "require('./packages/xo-server/package.json').version")
-version=$xo_version+git$date.$sha-$PKG_REVISION
-echo "Building xen-orchestra $version"
+git fetch -q --depth 1 https://github.com/vatesfr/xen-orchestra "$commit"
+git checkout -q FETCH_HEAD
+version=$release-$PKG_REVISION
+echo "Building xen-orchestra $release ($commit) as $version"
 
 # yarn 1 is only needed at build time; install outside the package tree.
 npm install --global --prefix "$work/tools" yarn@1.22.22
