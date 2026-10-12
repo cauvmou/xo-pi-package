@@ -37,9 +37,6 @@ curl -fsSLo "$work/SHASUMS256.txt" "$base/SHASUMS256.txt"
 (cd "$work" && grep " $node_dist.tar.xz\$" SHASUMS256.txt | sha256sum -c -)
 mkdir -p "$opt/node"
 tar -xJf "$work/$node_dist.tar.xz" -C "$opt/node" --strip-components=1
-# npm/corepack are not needed at runtime.
-rm -rf "$opt"/node/{include,share,CHANGELOG.md,README.md} \
-  "$opt"/node/lib/node_modules/{npm,corepack}
 export PATH=$opt/node/bin:$PATH
 
 # --- XO sources -------------------------------------------------------------
@@ -70,6 +67,11 @@ rm -rf .git .turbo docs
 find . -name '*.map' -not -path '*/node_modules/*' -delete
 find . -type d \( -name test -o -name __tests__ \) -prune -exec rm -rf {} +
 mv "$work/xo" "$opt/xo"
+
+# npm/corepack are only needed at build time (they installed yarn above).
+rm -rf "$opt"/node/{include,share,CHANGELOG.md,README.md} \
+  "$opt"/node/lib/node_modules \
+  "$opt"/node/bin/{npm,npx,corepack}
 
 cp -a "$root"/packaging/etc "$root"/packaging/lib "$pkg"/
 install -Dm644 "$root/packaging/usr/share/doc/xen-orchestra/copyright" \
