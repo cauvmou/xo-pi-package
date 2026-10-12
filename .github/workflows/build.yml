@@ -27,7 +27,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             ca-certificates curl git xz-utils build-essential python3 pkg-config \
-            libfuse3-dev libssl-dev dpkg-dev lintian
+            libfuse-dev libssl-dev dpkg-dev lintian
       - uses: actions/checkout@v4
       - run: make deb CHANNEL=${{ matrix.channel }}
       - name: Lint

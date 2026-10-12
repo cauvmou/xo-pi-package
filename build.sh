@@ -52,14 +52,31 @@ echo "Building xen-orchestra $release ($commit) as $version"
 npm install --global --prefix "$work/tools" yarn@1.22.22
 export PATH=$work/tools/bin:$PATH
 
-yarn install --frozen-lockfile
+# fuse-native links against fuse-shared-library-linux, which ships a prebuilt x86_64
+# libfuse (and fuse-shared-library-linux-arm is 32-bit only). Skip install scripts,
+# point that package at the system FUSE 2 (libfuse-dev here, libfuse2t64 at runtime)
+# and build fuse-native by hand.
+yarn install --frozen-lockfile --ignore-scripts
+multiarch=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
+fuse_pkg=node_modules/fuse-shared-library-linux
+cat > $fuse_pkg/lib.js <<JS
+console.log('/usr/lib/$multiarch/libfuse.so')
+JS
+cat > $fuse_pkg/include.js <<JS
+console.log('/usr/include/fuse')
+JS
+sed -i \
+  -e "s|^const lib = .*|const lib = '/usr/lib/$multiarch/libfuse.so'|" \
+  -e "s|^const include = .*|const include = '/usr/include/fuse'|" \
+  $fuse_pkg/index.js
+(cd node_modules/fuse-native && ../.bin/node-gyp rebuild)
 # Same as upstream `yarn build` minus `build:doc` (docs are not shipped).
 TURBO_TELEMETRY_DISABLED=1 yarn turbo run build \
   --filter xo-server --filter 'xo-server-*' --filter xo-web \
   --filter @xen-orchestra/web --filter @xen-orchestra/backup-archive
 
 # Drop dev dependencies; workspace symlinks stay relative so the tree is relocatable.
-yarn install --frozen-lockfile --production
+yarn install --frozen-lockfile --production --ignore-scripts
 yarn cache clean
 
 # --- Stage ------------------------------------------------------------------
